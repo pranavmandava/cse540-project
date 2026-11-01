@@ -212,8 +212,10 @@ interface IHBOMProvenance {
     // Read-only access
     // ------------------------------------------------------------------
 
+    /// @notice A registered component batch, or a zero-filled struct if unknown.
     function getComponent(string calldata componentId) external view returns (Component memory);
 
+    /// @notice A single certificate record by its sequential id.
     function getCertificate(uint256 certId) external view returns (Certificate memory);
 
     /// @notice Every certificate ever attached to a component, oldest first.
@@ -222,8 +224,10 @@ interface IHBOMProvenance {
         view
         returns (Certificate[] memory);
 
+    /// @notice An assembled board plus its current custody state.
     function getBoard(string calldata boardId) external view returns (Board memory);
 
+    /// @notice The component ids that make up a board's HBOM, in assembly order.
     function getBoardComponents(string calldata boardId)
         external
         view
