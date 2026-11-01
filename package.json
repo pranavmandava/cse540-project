@@ -1,0 +1,23 @@
+{
+  "name": "cse540-project",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Electronics Hardware Bill of Materials (HBOM) provenance and compliance registry - CSE 540 Group 18",
+  "license": "MIT",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-viem": "^3",
+    "hardhat": "^3.21.2",
+    "viem": "^2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1"
+  }
+}

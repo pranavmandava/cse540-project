@@ -1,0 +1,25 @@
+# Build output
+node_modules/
+artifacts/
+cache/
+coverage/
+coverage.json
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Generated per-chain deployment records (address + ABI), written by scripts/deploy.ts
+shared/deployments/*.json
+!shared/deployments/README.md
+
+# Web app (added in P2)
+web/dist/
+web/.output/
+web/.wrangler/
+web/.tanstack/
+
+# OS / editor
+.DS_Store
+*.log
