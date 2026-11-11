@@ -1,0 +1,243 @@
+{
+  "source": {
+    "dataset": "docyx/pc-part-dataset",
+    "url": "https://github.com/docyx/pc-part-dataset",
+    "files": [
+      "cpu.json",
+      "motherboard.json",
+      "memory.json",
+      "internal-hard-drive.json",
+      "case.json",
+      "power-supply.json"
+    ],
+    "retrieved": "2026-11-11",
+    "note": "Prices are USD from the dataset snapshot; specs are trimmed to one line per part."
+  },
+  "board": {
+    "boardId": "AXIOM-WS-2026-SN-000418",
+    "componentIds": [
+      "CPU-AMD-R7-9800X3D-L2418",
+      "MB-ASUS-X870E-E-L2411",
+      "RAM-GSKILL-TZ5NEO-32G-L2431",
+      "SSD-SAMSUNG-990PRO-2T-L2409",
+      "CASE-CORSAIR-4000D-L2407",
+      "PSU-CORSAIR-RM850E-L2413"
+    ],
+    "missingCert": {
+      "componentId": "SSD-SAMSUNG-990PRO-2T-L2409",
+      "certType": 1
+    }
+  },
+  "parts": [
+    {
+      "category": "CPU",
+      "componentId": "CPU-AMD-R7-9800X3D-L2418",
+      "name": "AMD Ryzen 7 9800X3D",
+      "spec": "8 cores, 5.2 GHz boost, Zen 5",
+      "price": 451.5
+    },
+    {
+      "category": "CPU",
+      "componentId": "CPU-AMD-R9-9950X-L2419",
+      "name": "AMD Ryzen 9 9950X",
+      "spec": "16 cores, 5.7 GHz boost, Zen 5",
+      "price": 533.83
+    },
+    {
+      "category": "CPU",
+      "componentId": "CPU-AMD-R7-7800X3D-L2406",
+      "name": "AMD Ryzen 7 7800X3D",
+      "spec": "8 cores, 5 GHz boost, Zen 4",
+      "price": 340.05
+    },
+    {
+      "category": "CPU",
+      "componentId": "CPU-AMD-R5-9600X-L2420",
+      "name": "AMD Ryzen 5 9600X",
+      "spec": "6 cores, 5.4 GHz boost, Zen 5",
+      "price": 204.99
+    },
+    {
+      "category": "CPU",
+      "componentId": "CPU-AMD-R7-9700X-L2421",
+      "name": "AMD Ryzen 7 9700X",
+      "spec": "8 cores, 5.5 GHz boost, Zen 5",
+      "price": 305.89
+    },
+    {
+      "category": "MB",
+      "componentId": "MB-ASUS-X870E-E-L2411",
+      "name": "Asus ROG STRIX X870E-E GAMING WIFI",
+      "spec": "AM5, ATX, 4 DIMM slots",
+      "price": 478.01
+    },
+    {
+      "category": "MB",
+      "componentId": "MB-MSI-B650-TOMAHAWK-L2412",
+      "name": "MSI MAG B650 TOMAHAWK WIFI",
+      "spec": "AM5, ATX, 4 DIMM slots",
+      "price": 189.42
+    },
+    {
+      "category": "MB",
+      "componentId": "MB-GIGABYTE-X870E-ELITE-L2413",
+      "name": "Gigabyte X870E AORUS ELITE WIFI7",
+      "spec": "AM5, ATX, 4 DIMM slots",
+      "price": 325.31
+    },
+    {
+      "category": "MB",
+      "componentId": "MB-ASUS-B650-PLUS-L2409",
+      "name": "Asus PRIME B650-PLUS WIFI",
+      "spec": "AM5, ATX, 4 DIMM slots",
+      "price": 159.99
+    },
+    {
+      "category": "MB",
+      "componentId": "MB-ASROCK-B650M-PRO-RS-L2410",
+      "name": "ASRock B650M Pro RS WiFi",
+      "spec": "AM5, Micro ATX, 4 DIMM slots",
+      "price": 139.99
+    },
+    {
+      "category": "RAM",
+      "componentId": "RAM-GSKILL-TZ5NEO-32G-L2431",
+      "name": "G.Skill Trident Z5 Neo RGB 32 GB",
+      "spec": "2x16 GB DDR5-6000",
+      "price": 119.99
+    },
+    {
+      "category": "RAM",
+      "componentId": "RAM-CORSAIR-VENGEANCE-32G-L2432",
+      "name": "Corsair Vengeance RGB 32 GB",
+      "spec": "2x16 GB DDR5-6000",
+      "price": 94.99
+    },
+    {
+      "category": "RAM",
+      "componentId": "RAM-TEAM-TCREATE-32G-L2433",
+      "name": "TEAMGROUP T-Create Expert 32 GB",
+      "spec": "2x16 GB DDR5-6000",
+      "price": 98.99
+    },
+    {
+      "category": "RAM",
+      "componentId": "RAM-KINGSTON-FURY-32G-L2434",
+      "name": "Kingston FURY Beast 32 GB",
+      "spec": "2x16 GB DDR5-6000",
+      "price": 122.99
+    },
+    {
+      "category": "RAM",
+      "componentId": "RAM-GSKILL-FLAREX5-32G-L2435",
+      "name": "G.Skill Flare X5 32 GB",
+      "spec": "2x16 GB DDR5-6000",
+      "price": 89.99
+    },
+    {
+      "category": "SSD",
+      "componentId": "SSD-SAMSUNG-990PRO-2T-L2409",
+      "name": "Samsung 990 Pro",
+      "spec": "2 TB, M.2 PCIe 4.0 X4, M.2-2280",
+      "price": 149.99
+    },
+    {
+      "category": "SSD",
+      "componentId": "SSD-WD-SN850X-2T-L2410",
+      "name": "Western Digital WD_Black SN850X",
+      "spec": "2 TB, M.2 PCIe 4.0 X4, M.2-2280",
+      "price": 154.54
+    },
+    {
+      "category": "SSD",
+      "componentId": "SSD-CRUCIAL-P3PLUS-1T-L2411",
+      "name": "Crucial P3 Plus",
+      "spec": "1 TB, M.2 PCIe 4.0 X4, M.2-2280",
+      "price": 56.95
+    },
+    {
+      "category": "SSD",
+      "componentId": "SSD-KINGSTON-NV3-1T-L2412",
+      "name": "Kingston NV3",
+      "spec": "1 TB, M.2 PCIe 4.0 X4, M.2-2280",
+      "price": 58
+    },
+    {
+      "category": "SSD",
+      "componentId": "SSD-CRUCIAL-T705-2T-L2413",
+      "name": "Crucial T705",
+      "spec": "2 TB, M.2 PCIe 5.0 X4, M.2-2280",
+      "price": 199.99
+    },
+    {
+      "category": "CASE",
+      "componentId": "CASE-CORSAIR-4000D-L2407",
+      "name": "Corsair 4000D Airflow",
+      "spec": "ATX Mid Tower, Tinted Tempered Glass side panel",
+      "price": 94.99
+    },
+    {
+      "category": "CASE",
+      "componentId": "CASE-NZXT-H5FLOW-L2408",
+      "name": "NZXT H5 Flow (2024)",
+      "spec": "ATX Mid Tower, Tempered Glass side panel",
+      "price": 84.99
+    },
+    {
+      "category": "CASE",
+      "componentId": "CASE-FRACTAL-NORTH-L2409",
+      "name": "Fractal Design North",
+      "spec": "ATX Mid Tower, Tempered Glass side panel",
+      "price": 139.99
+    },
+    {
+      "category": "CASE",
+      "componentId": "CASE-LIANLI-LANCOOL216-L2410",
+      "name": "Lian Li LANCOOL 216 RGB",
+      "spec": "ATX Mid Tower, Tempered Glass side panel",
+      "price": 102.97
+    },
+    {
+      "category": "CASE",
+      "componentId": "CASE-MONTECH-XR-L2411",
+      "name": "Montech XR",
+      "spec": "ATX Mid Tower, Tempered Glass side panel",
+      "price": 83.59
+    },
+    {
+      "category": "PSU",
+      "componentId": "PSU-CORSAIR-RM850E-L2413",
+      "name": "Corsair RM850e (2025)",
+      "spec": "850 W, 80+ None, Full modular",
+      "price": 119.99
+    },
+    {
+      "category": "PSU",
+      "componentId": "PSU-MSI-A850GL-L2414",
+      "name": "MSI MAG A850GL PCIE5",
+      "spec": "850 W, 80+ gold, Full modular",
+      "price": 121.99
+    },
+    {
+      "category": "PSU",
+      "componentId": "PSU-CORSAIR-RM1000E-L2415",
+      "name": "Corsair RM1000e (2023)",
+      "spec": "1000 W, 80+ gold, Full modular",
+      "price": 179.99
+    },
+    {
+      "category": "PSU",
+      "componentId": "PSU-BEQUIET-PP12M-L2416",
+      "name": "be quiet! Pure Power 12 M",
+      "spec": "850 W, 80+ gold, Full modular",
+      "price": 124.9
+    },
+    {
+      "category": "PSU",
+      "componentId": "PSU-NZXT-C850-L2417",
+      "name": "NZXT C850 (2024)",
+      "spec": "850 W, 80+ gold, Full modular",
+      "price": 124.99
+    }
+  ]
+}

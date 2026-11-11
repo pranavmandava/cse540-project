@@ -97,8 +97,14 @@ interface IHBOMProvenance {
     // full history from logs, which is cheaper than reading storage and works
     // for participants who were never granted a role.
 
+    // String identifiers are deliberately *not* indexed. Solidity stores an
+    // indexed string as keccak256(value), which hides the id from log readers,
+    // and this prototype has no separate indexer. Leaving them in the data
+    // section keeps logs self-describing, so the client can rebuild the whole
+    // registry by replaying events from block 0. Addresses and numeric ids stay
+    // indexed for cheap filtering.
     event ComponentRegistered(
-        string indexed componentId,
+        string componentId,
         address indexed supplier,
         bytes32 datasheetHash,
         string datasheetCID
@@ -106,7 +112,7 @@ interface IHBOMProvenance {
 
     event CertificateAdded(
         uint256 indexed certId,
-        string indexed componentId,
+        string componentId,
         CertType certType,
         bytes32 docHash,
         string docCID,
@@ -117,13 +123,13 @@ interface IHBOMProvenance {
 
     event CertificateRevoked(uint256 indexed certId, address indexed auditor, string reason);
 
-    event BoardAssembled(string indexed boardId, address indexed assembler, uint256 componentCount);
+    event BoardAssembled(string boardId, address indexed assembler, uint256 componentCount);
 
-    event TransferInitiated(string indexed boardId, address indexed from, address indexed to);
+    event TransferInitiated(string boardId, address indexed from, address indexed to);
 
-    event TransferAccepted(string indexed boardId, address indexed from, address indexed to);
+    event TransferAccepted(string boardId, address indexed from, address indexed to);
 
-    event TransferCancelled(string indexed boardId, address indexed by);
+    event TransferCancelled(string boardId, address indexed by);
 
     // ------------------------------------------------------------------
     // Errors

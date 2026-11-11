@@ -1,5 +1,6 @@
 import { defineConfig } from "hardhat/config";
 import hardhatViem from "@nomicfoundation/hardhat-viem";
+import hardhatNodeTestRunner from "@nomicfoundation/hardhat-node-test-runner";
 
 /**
  * Hardhat 3 configuration for the HBOM provenance prototype.
@@ -13,7 +14,7 @@ import hardhatViem from "@nomicfoundation/hardhat-viem";
  *   graded demo path is local only, matching what the proposal committed to.
  */
 export default defineConfig({
-  plugins: [hardhatViem],
+  plugins: [hardhatViem, hardhatNodeTestRunner],
 
   solidity: {
     version: "0.8.28",
