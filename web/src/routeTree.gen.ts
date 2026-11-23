@@ -14,6 +14,7 @@ import { Route as AssembleRouteImport } from './routes/assemble'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as CustodyRouteImport } from './routes/custody'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ApiIpfsRouteImport } from './routes/api/ipfs'
 import { Route as ApiRpcRouteImport } from './routes/api/rpc'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiIpfsRoute = ApiIpfsRouteImport.update({
+  id: '/api/ipfs',
+  path: '/api/ipfs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiRpcRoute = ApiRpcRouteImport.update({
   id: '/api/rpc',
   path: '/api/rpc',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/custody': typeof CustodyRoute
   '/register': typeof RegisterRoute
+  '/api/ipfs': typeof ApiIpfsRoute
   '/api/rpc': typeof ApiRpcRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/custody': typeof CustodyRoute
   '/register': typeof RegisterRoute
+  '/api/ipfs': typeof ApiIpfsRoute
   '/api/rpc': typeof ApiRpcRoute
 }
 export interface FileRoutesById {
@@ -70,14 +78,28 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/custody': typeof CustodyRoute
   '/register': typeof RegisterRoute
+  '/api/ipfs': typeof ApiIpfsRoute
   '/api/rpc': typeof ApiRpcRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/assemble' | '/audit' | '/custody' | '/register' | '/api/rpc'
+    | '/'
+    | '/assemble'
+    | '/audit'
+    | '/custody'
+    | '/register'
+    | '/api/ipfs'
+    | '/api/rpc'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/assemble' | '/audit' | '/custody' | '/register' | '/api/rpc'
+  to:
+    | '/'
+    | '/assemble'
+    | '/audit'
+    | '/custody'
+    | '/register'
+    | '/api/ipfs'
+    | '/api/rpc'
   id:
     | '__root__'
     | '/'
@@ -85,6 +107,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/custody'
     | '/register'
+    | '/api/ipfs'
     | '/api/rpc'
   fileRoutesById: FileRoutesById
 }
@@ -94,6 +117,7 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   CustodyRoute: typeof CustodyRoute
   RegisterRoute: typeof RegisterRoute
+  ApiIpfsRoute: typeof ApiIpfsRoute
   ApiRpcRoute: typeof ApiRpcRoute
 }
 
@@ -134,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ipfs': {
+      id: '/api/ipfs'
+      path: '/api/ipfs'
+      fullPath: '/api/ipfs'
+      preLoaderRoute: typeof ApiIpfsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/rpc': {
       id: '/api/rpc'
       path: '/api/rpc'
@@ -150,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   CustodyRoute: CustodyRoute,
   RegisterRoute: RegisterRoute,
+  ApiIpfsRoute: ApiIpfsRoute,
   ApiRpcRoute: ApiRpcRoute,
 }
 export const routeTree = rootRouteImport

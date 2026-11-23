@@ -1,0 +1,3 @@
+# Copy to web/.dev.vars for local development against the real IPFS upload.
+# In production the same value is a Worker secret: bunx wrangler secret put PINATA_JWT
+PINATA_JWT=

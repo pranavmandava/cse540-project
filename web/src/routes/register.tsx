@@ -40,7 +40,7 @@ import {
 } from "@/components/bits";
 import { useApp } from "@/lib/app";
 import { CERT_TYPES } from "@/lib/chain";
-import { hashFile } from "@/lib/hash";
+import { useIpfsFile, type UploadState } from "@/lib/ipfs";
 import { categoryOf, formatTimestamp } from "@/lib/format";
 import { useTx } from "@/lib/use-tx";
 
@@ -194,19 +194,23 @@ function FileField({
   );
 }
 
+/** One line under the hash box: IPFS pin in flight, pinned, or skipped. */
+function UploadStatus({ upload }: { upload: { state: UploadState; message?: string } }) {
+  if (upload.state === "uploading") {
+    return <p className="text-[11px] text-muted-foreground">Pinning to IPFS…</p>;
+  }
+  if (upload.state === "error") {
+    return <p className="text-[11px] text-muted-foreground">{upload.message}</p>;
+  }
+  return null;
+}
+
 function RegisterComponentCard() {
   const { address, hasRole } = useApp();
   const { run, pending, error } = useTx();
 
   const [batchId, setBatchId] = useState("");
-  const [cid, setCid] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [hash, setHash] = useState<`0x${string}` | null>(null);
-
-  async function onFile(next: File | null) {
-    setFile(next);
-    setHash(next ? (await hashFile(next)).hash : null);
-  }
+  const { file, hash, cid, setCid, upload, onFile, reset } = useIpfsFile();
 
   const ready = batchId.trim().length > 0 && Boolean(hash);
 
@@ -247,6 +251,7 @@ function RegisterComponentCard() {
               <CopyValue value={hash} display={hash} label="Datasheet hash" className="text-[11px]" />
             </div>
           ) : null}
+          <UploadStatus upload={upload} />
         </div>
 
         <div className="space-y-1.5">
@@ -255,9 +260,22 @@ function RegisterComponentCard() {
             id="datasheet-cid"
             value={cid}
             onChange={(event) => setCid(event.target.value)}
-            placeholder="bafy… (optional in the local demo)"
+            placeholder="bafy… (auto-filled after upload)"
             className="font-mono text-xs"
           />
+          {upload.state === "uploaded" ? (
+            <p className="text-[11px] text-muted-foreground">
+              Pinned to IPFS. Verify:{" "}
+              <a
+                className="underline underline-offset-2 hover:text-foreground"
+                href={`https://ipfs.io/ipfs/${cid}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                ipfs.io/ipfs/{cid.slice(0, 12)}…
+              </a>
+            </p>
+          ) : null}
         </div>
 
         {error ? (
@@ -286,9 +304,7 @@ function RegisterComponentCard() {
             ]);
             if (ok) {
               setBatchId("");
-              setFile(null);
-              setHash(null);
-              setCid("");
+              reset();
             }
           }}
         >
@@ -305,14 +321,7 @@ function AddCertificateCard() {
 
   const [componentId, setComponentId] = useState("");
   const [certType, setCertType] = useState("0");
-  const [cid, setCid] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [hash, setHash] = useState<`0x${string}` | null>(null);
-
-  async function onFile(next: File | null) {
-    setFile(next);
-    setHash(next ? (await hashFile(next)).hash : null);
-  }
+  const { file, hash, cid, setCid, upload, onFile, reset } = useIpfsFile();
 
   const ready = Boolean(componentId) && Boolean(hash);
 
@@ -375,6 +384,7 @@ function AddCertificateCard() {
               <CopyValue value={hash} display={hash} label="Document hash" className="text-[11px]" />
             </div>
           ) : null}
+          <UploadStatus upload={upload} />
         </div>
 
         <div className="space-y-1.5">
@@ -383,9 +393,22 @@ function AddCertificateCard() {
             id="doc-cid"
             value={cid}
             onChange={(event) => setCid(event.target.value)}
-            placeholder="bafy… (optional in the local demo)"
+            placeholder="bafy… (auto-filled after upload)"
             className="font-mono text-xs"
           />
+          {upload.state === "uploaded" ? (
+            <p className="text-[11px] text-muted-foreground">
+              Pinned to IPFS.{" "}
+              <a
+                className="underline underline-offset-2 hover:text-foreground"
+                href={`https://ipfs.io/ipfs/${cid}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open the pinned document
+              </a>
+            </p>
+          ) : null}
         </div>
 
         {error ? (
@@ -414,9 +437,7 @@ function AddCertificateCard() {
               cid.trim(),
             ]);
             if (ok) {
-              setFile(null);
-              setHash(null);
-              setCid("");
+              reset();
             }
           }}
         >
