@@ -7,11 +7,14 @@ import hardhatNodeTestRunner from "@nomicfoundation/hardhat-node-test-runner";
  *
  * Notes for the team:
  * - `contracts/` is the default source path, so nothing to override.
- * - The default (in-memory) network is used by `bun run test`.
- * - `localhost` is used by `bun run deploy:local`, which expects a running
+ * - The default (in-memory) network is used by `bun run test` and `bun run gas`.
+ * - `localhost` is used by `bun run seed:local`, which expects a running
  *   `bun run node` in another terminal.
- * - A Base Sepolia entry is added in P4 (see plan.md, "Shared testnet"); the
- *   graded demo path is local only, matching what the proposal committed to.
+ * - `base-sepolia` is the shared public network (plan.md "Shared testnet").
+ *   Its two throwaway accounts live in `.env` (see `.env.example`); the
+ *   deployer is the only one a faucet has to fund — the seed script forwards
+ *   gas money to the auditor itself. Local-dev Hardhat keys are never reused
+ *   there.
  */
 export default defineConfig({
   plugins: [hardhatViem, hardhatNodeTestRunner],
@@ -30,6 +33,15 @@ export default defineConfig({
     localhost: {
       type: "http",
       url: "http://127.0.0.1:8545",
+    },
+    "base-sepolia": {
+      type: "http",
+      url: process.env.BASE_SEPOLIA_RPC_URL ?? "https://sepolia.base.org",
+      chainId: 84532,
+      accounts: [
+        ...(process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : []),
+        ...(process.env.AUDITOR_PRIVATE_KEY ? [process.env.AUDITOR_PRIVATE_KEY] : []),
+      ],
     },
   },
 });
