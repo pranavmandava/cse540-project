@@ -1,8 +1,7 @@
 import { useCallback, useState } from "react";
 import { custom, createWalletClient } from "viem";
-import { hardhat } from "viem/chains";
 import { toast } from "sonner";
-import { ABI, CONTRACT_ADDRESS, describeError, publicClient } from "./chain";
+import { ABI, CHAIN, CONTRACT_ADDRESS, describeError, publicClient } from "./chain";
 import { useApp } from "./app";
 import { shortHash } from "./format";
 
@@ -14,7 +13,7 @@ async function sendViaWallet(functionName: string, args: readonly unknown[]) {
   const provider = typeof window === "undefined" ? undefined : window.ethereum;
   if (!provider) throw new Error("Connect MetaMask before sending a transaction.");
 
-  const walletClient = createWalletClient({ chain: hardhat, transport: custom(provider) });
+  const walletClient = createWalletClient({ chain: CHAIN, transport: custom(provider) });
   const [account] = await walletClient.getAddresses();
   if (!account) throw new Error("No account selected in MetaMask.");
 
@@ -24,7 +23,7 @@ async function sendViaWallet(functionName: string, args: readonly unknown[]) {
     functionName,
     args,
     account,
-    chain: hardhat,
+    chain: CHAIN,
   });
 
   await publicClient.waitForTransactionReceipt({ hash });

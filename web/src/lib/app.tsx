@@ -8,17 +8,8 @@ import {
   type ReactNode,
 } from "react";
 import { toHex, type Address } from "viem";
-import {
-  CHAIN_ID,
-  ROLE_HASH,
-  ROLE_NAMES,
-  describeError,
-  loadSnapshot,
-  readContract,
-  type RoleName,
-  type Snapshot,
-} from "./chain";
-import { RPC_URL } from "./deployment";
+import { CHAIN, CHAIN_ID, ROLE_HASH, ROLE_NAMES, describeError, loadSnapshot, readContract, type RoleName, type Snapshot } from "./chain";
+import { LOCAL_RPC_URL } from "./deployment";
 
 const EIP1193 = (): Window["ethereum"] | undefined =>
   typeof window === "undefined" ? undefined : window.ethereum;
@@ -65,9 +56,13 @@ async function ensureChain(provider: NonNullable<Window["ethereum"]>) {
       params: [
         {
           chainId: toHex(CHAIN_ID),
-          chainName: "Hardhat Local",
+          // MetaMask ships Base Sepolia built in; the local node is the only
+          // chain it has to learn, and its URL is not a secret.
+          chainName: CHAIN_ID === 31337 ? "Hardhat Local" : CHAIN.name,
           nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-          rpcUrls: [RPC_URL],
+          rpcUrls: [CHAIN_ID === 31337 ? LOCAL_RPC_URL : CHAIN.rpcUrls.default.http[0]],
+          blockExplorerUrls:
+            CHAIN_ID === 31337 ? undefined : [CHAIN.blockExplorers?.default.url],
         },
       ],
     });

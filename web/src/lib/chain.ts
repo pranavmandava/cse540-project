@@ -9,17 +9,20 @@ import {
   type Abi,
   type Address,
 } from "viem";
-import { hardhat } from "viem/chains";
-import { RPC_URL, deployment } from "./deployment";
+import { baseSepolia, hardhat } from "viem/chains";
+import { ABI, CONTRACT_ADDRESS, deployment } from "./deployment";
 
-export const ABI = deployment.abi as Abi;
-export const CONTRACT_ADDRESS = deployment.address as Address;
+export { ABI, CONTRACT_ADDRESS } from "./deployment";
+
 export const CHAIN_ID = deployment.chainId;
+
+/** The chain this build targets: local Hardhat (31337) or Base Sepolia (84532). */
+export const CHAIN = CHAIN_ID === 84532 ? baseSepolia : hardhat;
 
 /** Reads go over plain HTTP; writes go through the injected wallet. */
 export const publicClient = createPublicClient({
-  chain: hardhat,
-  // Same-origin proxy so the browser never calls the node across origins.
+  chain: CHAIN,
+  // Same-origin proxy so the browser never needs the RPC URL or an API key.
   transport: http("/api/rpc"),
 });
 
