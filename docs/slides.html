@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="darkreader-lock" content="true" />
+    <title>HBOM Provenance — Interim Demo</title>
+    <style>
+      :root {
+        --bg: #fbfbfa;
+        --fg: #111110;
+        --muted: #6b6b66;
+        --line: #e4e4df;
+        --card: #ffffff;
+        --done: #047857;
+        --doing: #b45309;
+        --next: #8a8a84;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body.presenting { overflow: hidden; }
+      body.presenting .hint, :fullscreen .hint { opacity: 0; }
+
+      .stage {
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .slide {
+        display: none;
+        width: min(100%, calc((100vh - 48px) * 16 / 9));
+        aspect-ratio: 16 / 9;
+        background: var(--bg);
+        padding: 4.6% 5.2%;
+        position: relative;
+        flex-direction: column;
+      }
+
+      .slide.active { display: flex; animation: fade 180ms ease; }
+      .slide.centered { justify-content: center; }
+      @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+      footer.meta {
+        position: absolute;
+        left: 5.2%;
+        right: 5.2%;
+        bottom: 3.4%;
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+
+      h1 {
+        font-size: clamp(30px, 3.5vw, 52px);
+        line-height: 1.06;
+        letter-spacing: -0.025em;
+        margin: 0 0 18px;
+        font-weight: 600;
+        max-width: 20ch;
+      }
+
+      h2 {
+        font-size: clamp(22px, 2.4vw, 34px);
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+        font-weight: 600;
+      }
+
+      .eyebrow {
+        font-size: 13px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 22px;
+      }
+
+      .lede {
+        font-size: clamp(15px, 1.35vw, 19px);
+        line-height: 1.5;
+        color: #3f3f3a;
+        max-width: none;
+        white-space: nowrap;
+      }
+
+      .sub {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+
+      .names {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 17px;
+        line-height: 1.5;
+        color: var(--muted);
+        margin-top: 36px;
+        max-width: 100%;
+      }
+
+      .rule { height: 1px; background: var(--line); margin: 22px 0; }
+
+      /* status */
+      .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5%; margin-top: 8px; }
+      .col h3 {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+      }
+      .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+      .col ul { margin: 0; padding: 0; list-style: none; }
+      .col li {
+        font-size: clamp(12px, 1.02vw, 14px);
+        line-height: 1.42;
+        padding: 7px 0;
+        border-top: 1px solid var(--line);
+        color: #2c2c28;
+      }
+      .col li:first-child { border-top: 0; padding-top: 0; }
+      .col li span { color: var(--muted); }
+      .done .dot { background: var(--done); }
+      .doing .dot { background: var(--doing); }
+      .next .dot { background: var(--next); }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2.5%;
+        margin-top: auto;
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+      }
+      .metrics b {
+        display: block;
+        font-size: clamp(22px, 2vw, 30px);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      .metrics span {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .note {
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--muted);
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+
+      /* architecture */
+      .arch { display: grid; grid-template-columns: 1fr 30px 1fr 30px 1.15fr; align-items: stretch; gap: 0; margin-top: 30px; }
+      .offs { display: grid; grid-template-columns: 1fr; margin-top: 16px; }
+      .box {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .box h4 { margin: 0; font-size: clamp(12px, 1.1vw, 15px); font-weight: 600; }
+      .box p { margin: 0; font-size: clamp(10.5px, 0.92vw, 12.5px); color: var(--muted); line-height: 1.45; }
+      .box code { font-family: var(--mono); font-size: 0.9em; }
+      .arrow { display: grid; place-items: center; color: #b9b9b2; font-size: 15px; }
+      .box.ghost { border-style: dashed; background: transparent; }
+      .tag {
+        font-size: 9.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 2px 7px;
+        align-self: flex-start;
+      }
+
+      /* demo */
+      .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.2%; margin-top: 40px; }
+      .demo-main { margin-block: auto; }
+      .step { border-top: 2px solid var(--fg); padding-top: 12px; }
+      .step b { display: block; font-size: clamp(12px, 1.05vw, 14px); margin-bottom: 6px; }
+      .step span { font-size: clamp(10.5px, 0.92vw, 12.5px); color: var(--muted); line-height: 1.45; display: block; }
+      .step em { font-family: var(--mono); font-style: normal; font-size: 0.92em; }
+
+      /* code map */
+      .code-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4%; margin-top: 14px; }
+      .code-grid h3 {
+        font-size: 10.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 10px;
+      }
+      .code-grid dl { margin: 0; }
+      .code-grid dt {
+        font-family: var(--mono);
+        font-size: clamp(11.5px, 1.05vw, 14px);
+        margin-top: 14px;
+        color: var(--fg);
+      }
+      .code-grid dd {
+        margin: 3px 0 0;
+        font-size: clamp(11px, 0.95vw, 13px);
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .flow {
+        margin-top: 36px;
+        font-size: 12px;
+        color: var(--muted);
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+      .flow code { font-family: var(--mono); color: var(--fg); font-size: 0.95em; }
+
+      /* close */
+      .two { display: grid; grid-template-columns: 1fr 1fr; gap: 5%; margin-top: 18px; }
+      .two p { font-size: clamp(13px, 1.15vw, 16px); line-height: 1.55; color: #2c2c28; margin: 0; max-width: 44ch; }
+      .two h3 { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+      .dates { display: flex; gap: 26px; margin-top: 52px; border-top: 1px solid var(--line); padding-top: 14px; font-size: 12px; color: var(--muted); }
+      .dates b { color: var(--fg); font-weight: 600; }
+
+      /* notes + chrome */
+      .hint {
+        transition: opacity 200ms ease;
+        position: fixed;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 10.5px;
+        color: #a3a39c;
+        letter-spacing: 0.03em;
+        user-select: none;
+      }
+      aside.notes {
+        display: none;
+        max-height: 24vh;
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        overflow: auto;
+        background: #111110;
+        color: #ececea;
+        font-size: 13px;
+        line-height: 1.55;
+        padding: 18px 26px 24px;
+        z-index: 20;
+      }
+      body.notes-on .slide.active aside.notes { display: block; }
+      aside.notes b { color: #6ee7b7; font-weight: 600; }
+
+      @media print {
+        @page { size: 1280px 720px; margin: 0; }
+        body, html { background: #fff; }
+        .stage { display: block; width: auto; height: auto; padding: 0; }
+        .slide { display: flex !important; width: 1280px; height: 720px; aspect-ratio: auto; page-break-after: always; }
+        .hint, aside.notes { display: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <!-- 1 -->
+      <section class="slide active">
+        <div class="eyebrow">CSE 540 · Interim Demo · Group 18</div>
+        <h1>Provenance for a hardware bill of materials</h1>
+        <p class="lede">
+          A shared record of parts, compliance evidence, and custody for a PC build
+        </p>
+        <div class="names">
+          <span>Suhas Gajula</span>
+          <span>Varshini Akula</span>
+          <span>Pranav Mandava</span>
+          <span>Thushar Reddy Vemula</span>
+          <span>Venkata Pradeep Reddy Venuthurla</span>
+        </div>
+        <footer class="meta"><span>CSE 540 · Group 18</span><span>1 / 4</span></footer>
+        <aside class="notes">
+          <b>Say:</b> "Every electronics product is a pile of parts from companies that never
+          talk to each other. We built a shared record: what went into a board, which documents
+          back it up, and who has held it since."
+        </aside>
+      </section>
+
+      <!-- 2 -->
+      <section class="slide centered">
+        <h2>Where we are</h2>
+        <div class="rule"></div>
+        <div class="cols">
+          <div class="col done">
+            <h3><i class="dot"></i>Finished</h3>
+            <ul>
+              <li>Contract: 4 roles, 8 write functions, custom errors, indexed events</li>
+              <li>8-case test suite: unauthorized, duplicate, missing evidence, transfers, self-attestation, revocation</li>
+              <li>Five-screen client on TanStack Start + Cloudflare Workers</li>
+              <li>Seed: 30 real PC parts, 89 attested certificates, one deliberate gap</li>
+            </ul>
+          </div>
+          <div class="col doing">
+            <h3><i class="dot"></i>In progress</h3>
+            <ul>
+              <li>IPFS upload: keccak256 is computed in the browser and stored on chain; CIDs are placeholders</li>
+              <li>Reviewer pass on empty states and failure copy</li>
+              <li>Gas capture for the comparison table</li>
+            </ul>
+          </div>
+          <div class="col next">
+            <h3><i class="dot"></i>Remaining</h3>
+            <ul>
+              <li>Base Sepolia deployment and a live Workers URL</li>
+              <li>Gas, privacy, and centralized-alternative analysis</li>
+              <li>Final report and a cold-clone demo</li>
+            </ul>
+          </div>
+        </div>
+        <footer class="meta"><span>CSE 540 · Group 18</span><span>2 / 4</span></footer>
+        <aside class="notes">
+          <b>Say:</b> "Status in three columns. What's finished is not a mock: the same contract
+          runs under the tests, the seed, and the UI. What's in progress is the document layer —
+          hashes are real today, IPFS is next. What remains is the network, the analysis, and the
+          report."
+        </aside>
+      </section>
+
+      <!-- 3 -->
+      <section class="slide centered">
+        <h2>Architecture</h2>
+        <div class="arch">
+          <div class="box">
+            <span class="tag">Browser</span>
+            <h4>MetaMask + keccak256</h4>
+            <p>Signs every write. Hashes the chosen PDF before anything leaves the page.</p>
+          </div>
+          <div class="arrow">→</div>
+          <div class="box">
+            <span class="tag">Workers</span>
+            <h4>TanStack Start</h4>
+            <p>Five role screens. <code>/api/rpc</code> proxies JSON-RPC so keys and URLs stay out of the page.</p>
+          </div>
+          <div class="arrow">→</div>
+          <div class="box">
+            <span class="tag">Chain</span>
+            <h4>HBOMProvenance</h4>
+            <p>Roles, batches, certificates, custody. <code>verifyCompliance()</code> is the answer the badge shows.</p>
+          </div>
+        </div>
+        <div class="offs">
+          <div class="box ghost">
+            <h4>Off chain · IPFS (planned)</h4>
+            <p>Full PDFs live here. Only the content hash and CID go on chain, so a buyer can re-hash the file and compare.</p>
+          </div>
+        </div>
+        <footer class="meta"><span>CSE 540 · Group 18</span><span>3 / 4</span></footer>
+        <aside class="notes">
+          <b>Say:</b> "Two layers. The contract is the trust layer; the app is a convenience
+          layer and never the source of truth. The browser hashes the document, the wallet signs,
+          the chain records. Nobody's private key touches the server."
+        </aside>
+      </section>
+
+      <!-- 4 -->
+      <section class="slide demo">
+        <div class="demo-main">
+        <h2 style="font-size: clamp(34px, 3.4vw, 52px)">Live demo</h2>
+        <div class="steps">
+          <div class="step">
+            <b>1 · Buyer verifies</b>
+            <span>Build <em>AXIOM-WS-2026</em> is not compliant: one gap, the SSD's REACH declaration.</span>
+          </div>
+          <div class="step">
+            <b>2 · Supplier uploads</b>
+            <span>Chooses a PDF. The keccak256 appears in the UI before the transaction is signed.</span>
+          </div>
+          <div class="step">
+            <b>3 · Auditor attests</b>
+            <span>The pending document moves through the audit queue and gets attested.</span>
+          </div>
+          <div class="step">
+            <b>4 · Verify + custody</b>
+            <span>Badge flips to compliant; the board is offered and accepted by the distributor.</span>
+          </div>
+        </div>
+        </div>
+        <footer class="meta"><span>CSE 540 · Group 18</span><span>4 / 4</span></footer>
+        <aside class="notes">
+          <b>Do:</b> switch to the browser. Verify → Supplier (add REACH) → Auditor (attest) →
+          Verify (flip) → Custody (offer, switch account, accept). Then show one revert from the
+          wrong role.
+        </aside>
+      </section>
+
+    </div>
+
+    <div class="hint">← → to move · N for notes · F for fullscreen</div>
+
+    <script>
+      const slides = [...document.querySelectorAll(".slide")];
+      let index = 0;
+
+      function show(next) {
+        index = Math.max(0, Math.min(slides.length - 1, next));
+        slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+        history.replaceState(null, "", "#" + (index + 1));
+      }
+
+      addEventListener("keydown", (event) => {
+        document.body.classList.add("presenting");
+        if (["ArrowRight", "PageDown", " ", "Enter"].includes(event.key)) {
+          event.preventDefault();
+          show(index + 1);
+        } else if (["ArrowLeft", "PageUp", "Backspace"].includes(event.key)) {
+          event.preventDefault();
+          show(index - 1);
+        } else if (event.key === "Home") {
+          show(0);
+        } else if (event.key === "End") {
+          show(slides.length - 1);
+        } else if (event.key.toLowerCase() === "n") {
+          document.body.classList.toggle("notes-on");
+        } else if (event.key.toLowerCase() === "f") {
+          if (document.fullscreenElement) document.exitFullscreen();
+          else document.documentElement.requestFullscreen();
+        }
+      });
+
+      const fromHash = Number(location.hash.replace("#", ""));
+      show(Number.isFinite(fromHash) && fromHash > 0 ? fromHash - 1 : 0);
+    </script>
+  </body>
+</html>

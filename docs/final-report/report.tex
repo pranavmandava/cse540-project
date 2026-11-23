@@ -1,0 +1,204 @@
+% CSE 540 (Fall 2026, Group 18) — Final technical report.
+% Compile on Overleaf: this file is self-contained IEEEtran conference format;
+% no external figures or .bib files are required.
+%
+% Team review notes live in docs/final-report/README.md.
+
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{array}
+
+\begin{document}
+
+\title{Chain-Anchored Provenance and Compliance for Electronics Hardware Bills of Materials}
+
+\author{\IEEEauthorblockN{Pranav Mandava}
+\IEEEauthorblockA{\textit{Group 18} \\ \textit{CSE 540: Engineering Blockchain Applications} \\ pranav.techiegeek@gmail.com}
+\and
+\IEEEauthorblockN{Suhas Gajula}
+\IEEEauthorblockA{\textit{Group 18} \\ \textit{CSE 540: Engineering Blockchain Applications} \\ suhasgajula248@gmail.com}
+\and
+\IEEEauthorblockN{Thushar Reddy Vemula}
+\IEEEauthorblockA{\textit{Group 18} \\ \textit{CSE 540: Engineering Blockchain Applications} \\ vemulathusharreddy@gmail.com}
+\and
+\IEEEauthorblockN{Varshini Akula}
+\IEEEauthorblockA{\textit{Group 18} \\ \textit{CSE 540: Engineering Blockchain Applications} \\ akulavarshini@gmail.com}
+\and
+\IEEEauthorblockN{Venkata Pradeep Reddy Venuthurla}
+\IEEEauthorblockA{\textit{Group 18} \\ \textit{CSE 540: Engineering Blockchain Applications} \\ pradeepreddyvv@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Electronics hardware bills of materials (HBOMs) span companies that never share records: tier-2 vendors hold component certificates, tier-1 assemblers hold board definitions, and distributors hold custody logs. A buyer assembling a workstation cannot trace which batches entered a board, which compliance documents cover them, or who handled the device last. We present a Solidity prototype that makes this fragmented record a single shared one. Component batches, compliance evidence, board membership, and a two-step custody handover live in one role-gated contract; documents themselves stay off-chain on IPFS, anchored by a keccak256 hash stored at registration time and re-verifiable by anyone. Auditors attest hashes under an on-chain separation-of-duties rule that forbids self-attestation, and a single read returns the exact missing documents for any board. We measure the full gas profile of the system on a deterministic local chain, price three storage-design alternatives (word identifiers, a Merkle-root HBOM, flat role checks), and use those numbers to justify the design: per-certificate records dominate cost (69\% of a 28.9M-gas seeded world) but are what makes exact gap enumeration possible. We close with what the system deliberately cannot prove---physical authenticity---and the privacy, interoperability, and governance constraints a real deployment would face.
+\end{abstract}
+
+\begin{IEEEkeywords}
+blockchain, provenance, supply chain, smart contracts, HBOM, compliance, RoHS, REACH, IPFS
+\end{IEEEkeywords}
+
+\section{Introduction}
+An assembled electronics board is a stack of components from companies that do not talk to each other. Each tier keeps its own records: the tier-2 supplier knows which reel of SSDs shipped with which REACH declaration; the tier-1 assembler knows which batches entered which board serial; the distributor knows who held the box last. No single one of them, and certainly not the end buyer, can answer the question that matters: \emph{for this board, which documented, attested evidence covers every component, and who has handled it?}
+
+The cost of not answering it is well documented. Counterfeit integrated circuits evade detection precisely because the paper trail is fragmented across tiers~\cite{guin}, and compliance regimes---RoHS, REACH, FCC---are enforced through documents that a buyer must request, trust, and file. Prior work applies blockchain provenance to electronics supply chains~\cite{cui} and product-ownership management~\cite{toyoda}; both conclude that the binding constraint is not the ledger but the linkage between physical items, documents, and custody events.
+
+This paper describes the design, implementation, and measured cost of \texttt{HBOMProvenance}, a course-scale prototype that makes that linkage the primary artifact:
+
+\begin{itemize}
+\item \textbf{One contract, five stakeholders.} Suppliers register batches and attach document commitments; assemblers link batches into boards; auditors attest or revoke documents; custodians move boards through a two-step handover; buyers read everything without a wallet.
+\item \textbf{Hash-first evidence.} Files are hashed in the browser before anything is signed; the contract stores the hash, type, and IPFS content identifier (CID). An auditor's attestation therefore binds a \emph{specific document content}, not a claim.
+\item \textbf{Exact gaps, on-chain.} Compliance verification does not return a boolean; it returns the precise missing \texttt{component:certType} pairs, and the buyer-facing badge renders that answer verbatim.
+\end{itemize}
+
+Section~\ref{sec:design} covers the system design, Section~\ref{sec:contract} the contract logic, Section~\ref{sec:impl} the implementation and test suite, Section~\ref{sec:gas} the gas and scalability measurements, and Section~\ref{sec:discussion} the discussion a production system would have to survive.
+
+\section{System Design}\label{sec:design}
+
+\subsection{Stakeholders and Access Control}
+The contract separates five participant types through four operational roles plus a role administrator (Table~\ref{tab:roles}). Roles are OpenZeppelin \texttt{AccessControl} roles~\cite{oz}; every grant and revocation is itself a transaction with an event, so governance history is on-chain by construction rather than by convention. Role assignment is deliberately outside the constructor: the deploy script grants roles through visible transactions, and the demo shows each participant receiving theirs.
+
+\begin{table}[!t]
+\caption{Roles and their write permissions}
+\label{tab:roles}
+\centering
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Role & Held by & Permitted writes \\
+\midrule
+\texttt{SUPPLIER} & tier-2 vendors & register batches; attach documents to own batches \\
+\texttt{ASSEMBLER} & tier-1 manufacturers & create board HBOMs from registered batches \\
+\texttt{AUDITOR} & regulators, labs & attest or revoke any document \\
+\texttt{CUSTODIAN} & logistics, distributors & initiate/accept/cancel custody \\
+\texttt{ADMIN} & consortium operator & grant and revoke all roles \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Model}
+Three structs carry the state. A \texttt{Component} is a registered batch: human-readable string id (e.g.\ \texttt{SSD-SAMSUNG-990PRO-2T-L2409}), datasheet hash and CID, registering supplier, timestamp. A \texttt{Certificate} is one compliance document against one batch: certificate type (RoHS, REACH, FCC), document hash and CID, issuing supplier, attesting auditor, attestation timestamp, and two flags---\texttt{attested} and \texttt{revoked}. A \texttt{Board} is an assembled unit: its member component ids, assembler, current custodian, a pending custodian, and a custody state (\texttt{InCustody} / \texttt{InTransit}).
+
+Nothing is ever deleted. Revocation is a flag flip, not a removal; the certificate history of every batch remains reconstructable from storage for the life of the chain. At course scale this is a virtue rather than a cost---the audit trail is the product.
+
+\subsection{The Product Journey}
+The journey the assignment describes maps to eight write functions:
+
+\begin{enumerate}
+\item \emph{Creation}: \texttt{registerComponent(id, datasheetHash, cid)} --- a supplier records a batch.
+\item \emph{Evidence}: \texttt{addCertificate(id, type, docHash, cid)} --- the same supplier attaches a compliance document.
+\item \emph{Validation}: \texttt{attestCertificate(certId)} --- an auditor independently confirms the document hash; \texttt{revokeCertificate} reverses it with a reason string in the event.
+\item \emph{Assembly}: \texttt{assembleHBOM(boardId, componentIds)} --- an assembler links registered batches into a board (bounded by \texttt{MAX\_COMPONENTS = 16}).
+\item \emph{Shipment and delivery}: \texttt{initiateTransfer} then \texttt{acceptTransfer} (or \texttt{cancelTransfer}) --- a two-step custody handover.
+\item \emph{Verification}: \texttt{verifyCompliance(boardId)} --- anyone, without a wallet, reads compliance and the exact gaps.
+\end{enumerate}
+
+\subsection{Architecture}
+The client is a TanStack Start application deployed to Cloudflare Workers. The browser talks to the chain through a same-origin JSON-RPC proxy (so neither a local node URL nor any RPC key ever reaches the page), and uploads documents through a same-origin IPFS pinning route backed by Pinata---the JWT stays a server-side secret. Files are hashed \emph{before} upload; if pinning is unavailable, the flow degrades to hash-only with a manually typed CID, and nothing about the trust model is lost, since the hash is the anchor.
+
+Two chain environments back the same contract and client. The graded demonstration runs on a local Hardhat node with five deterministic funded accounts, one per role---the entire demo world seeds in one command (~29M gas, offline, repeatable). An optional shared deployment on Base Sepolia lets anyone verify the same flows through a public Worker URL with two throwaway accounts; separation of duties is preserved because the auditor key holds only \texttt{AUDITOR\_ROLE}.
+
+\section{Smart Contract Logic}\label{sec:contract}
+
+\subsection{Errors, Not Strings}
+Every failure path is a custom error with its offending values: \texttt{AlreadyExists(id)}, \texttt{NotFound(id)}, \texttt{EmptyId()}, \texttt{InvalidHash()}, \texttt{NotComponentSupplier(id, sender)}, \texttt{AlreadyAttested}, \texttt{AlreadyRevoked}, \texttt{SelfAttestation()}, \texttt{WrongCustodyState(expected, actual)}, \texttt{NotCustodian(id, sender)}, \texttt{SelfTransfer()}, \texttt{InvalidAddress()}, \texttt{NoComponents()}, \texttt{TooManyComponents(n, max)}, and \texttt{DuplicateComponentInBatch(id)}. The client decodes the error name and arguments---a wrong-role attempt on the register screen surfaces as \texttt{AccessControlUnauthorizedAccount(0x..., SUPPLIER\_ROLE)} to the user, which doubles as the role-gating demonstration in the demo.
+
+\subsection{Separation of Duties}
+Two rules are enforced in \texttt{attestCertificate}: an already-attested certificate cannot be attested again (\texttt{AlreadyAttested}), and the auditor cannot have issued the document themselves (\texttt{SelfAttestation}). Together they guarantee that every accepted document has been confirmed by \emph{two} distinct keys. Revocation is deliberately allowed even before attestation: an auditor inspecting a fraudulent document can reject it outright, and the record of the rejection stays.
+
+Only the supplier that registered a batch may attach evidence to it (\texttt{NotComponentSupplier}), so a competitor cannot poison another vendor's record even while holding the supplier role.
+
+\subsection{Two-Step Custody}
+\texttt{initiateTransfer} moves a board to \texttt{InTransit} and names a pending custodian; only that account can \texttt{acceptTransfer}. Two guards make the state machine safe under typos: the recipient must already hold \texttt{CUSTODIAN\_ROLE} (otherwise a mistyped address would strand the board in \texttt{InTransit} forever), and the current custodian cannot transfer to themselves. The original custodian retains an escape hatch: \texttt{cancelTransfer} returns the board to \texttt{InCustody} until the moment the recipient accepts.
+
+\subsection{Compliance Semantics}
+\texttt{verifyCompliance} walks every component of a board and requires, for each of the three certificate types, at least one certificate that is attested \emph{and} not revoked. The return value is the list of gaps as \texttt{componentId:certType} strings; the buyer page renders it verbatim. This is the load-bearing design decision of the system: a boolean would be cheaper to consume but would force the buyer back into asking each tier \emph{which} document is missing---the exact interaction this project removes. Section~\ref{sec:gas} prices this decision and shows it is nearly free (the gap-reporting path costs $+0.9\%$ over the clean path).
+
+\subsection{Events and Stateless Clients}
+Every state change emits an event carrying the human-readable ids as unindexed strings. The web client rebuilds its entire view by replaying events from block zero, then hydrating records with storage reads---no indexer, no database, no backend state. At course scale (30 batches, 90 certificates) this is a handful of RPC calls; at production scale it is the first component to replace (Section~\ref{sec:future}).
+
+\section{Implementation and Testing}\label{sec:impl}
+The contract is Solidity 0.8.28 with the optimizer at 200 runs, inheriting OpenZeppelin \texttt{AccessControl}. Tooling is Hardhat 3 with viem shared between the test suite and the web client. The test suite covers the protocol rules promised in the proposal: the happy path; unauthorized writes (role-gated reverts); duplicate batch ids; missing evidence (an unattested certificate must not satisfy compliance); invalid transfers (recipient without role, self-transfer); the two-step handover (only the nominated recipient accepts); double attestation and self-attestation rejections; and revocation flipping compliance back while preserving the record.
+
+Gas is measured directly from transaction receipts on the in-memory chain, which makes numbers deterministic per commit. View costs are \texttt{eth\_estimateGas} on an \texttt{eth\_call}---free for off-chain readers, but the price another contract would pay and a clean complexity signal. The design alternatives of Section~\ref{sec:gas} are measured with single-purpose bench contracts that keep everything except the choice under test identical to the main contract: same struct fields, same event shapes, same validation logic.
+
+\section{Gas and Scalability Analysis}\label{sec:gas}
+
+\begin{table}[!t]
+\caption{Measured gas on the in-memory chain (solc 0.8.28, optimizer 200)}
+\label{tab:gas}
+\centering
+\begin{tabular}{@{}l r@{}}
+\toprule
+Operation & Gas \\
+\midrule
+deploy contract & 3,187,558 \\
+grantRole (per holder) & 51,495 \\
+registerComponent (31-char id) & 119,946 \\
+registerComponent (40-char id) & 164,851 \\
+addCertificate & 221,392--224,204 \\
+attestCertificate & 57,270 \\
+revokeCertificate & 51,600 \\
+assembleHBOM (6 components) & 352,534 \\
+assembleHBOM (16 components) & 678,456 \\
+initiateTransfer / acceptTransfer & 37,770 / 37,910 \\
+verifyCompliance (6, view) & 205,538 \\
+verifyCompliance (16, view) & 502,165 \\
+getBoardLineage (6, view) & 546,811 \\
+\midrule
+seed world (30 parts, 89 certs, 1 board) & 28,918,618 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:gas} gives the operating profile; three findings drive the design discussion.
+
+\subsection{Certificates Dominate}
+Composing the seeded demo world costs 28.9M gas, and 69\% of it is \texttt{addCertificate}: 89 documents at roughly 224k each, each writing a full struct (two strings, nine value fields) plus an index append. The registry itself is cheap. \emph{Any} meaningful cost reduction must therefore target the evidence model, not the id keys or the custody machinery.
+
+\subsection{Human-Readable Ids Are Nearly Free---Below 32 Characters}
+Ids of 10, 20, and 31 characters all register within 252 gas of each other, because Solidity packs short strings into a single storage slot; the measured premium of a string key over a \texttt{bytes32} key in an otherwise identical bench contract is 4.6k gas ($+3.8\%$)---calldata hashing, not storage. The cliff is real but avoidable: at 40 characters the id spills into a second data slot and registration costs $+37\%$. The design response is a naming convention (all dataset ids are $\le$~31 characters), not a type change. Strings do cost on assembly---each \texttt{string[]} member is a pointer to separately stored data---making a six-component assembly $22\%$ more expensive than its \texttt{bytes32[]} equivalent.
+
+\subsection{The Merkle Alternative: 87\% Cheaper, and Wrong for This Product}
+A bench contract storing a single Merkle root per board assembles for 45,747 gas ($-87\%$) and verifies membership in 27,750 gas, nearly flat in HBOM size (27,750 $\to$ 29,000 from 6 to 16 leaves, versus a 205k $\to$ 502k linear scan). If the only question were ``is \emph{this exact} HBOM the one that was certified,'' this is the correct architecture. But a root cannot answer \emph{which} documents are missing, ends per-certificate history, and turns revocation into a tree rebuild. The buyer badge and the auditor queue are the product; we keep per-component records and accept the cost, noting a production hybrid (per-component roots, off-chain proofs, indexer-driven enumeration) in Section~\ref{sec:future}.
+
+\subsection{AccessControl Is Worth Its Premium}
+Against a flat \texttt{mapping(address => bool)} bench, OpenZeppelin enrollment costs $+7.6$k gas (the \texttt{RoleGranted} event and admin-branch check) and each gated call costs $+391$ gas ($+0.3\%$). For that premium the contract gains a role-admin hierarchy, introspection, and standardized governance events---the audit trail the system exists to produce. The scalability story is bounded and honest: \texttt{MAX\_COMPONENTS} keeps assembly under 680k and an on-chain compliance read under 505k, and both scale linearly in components, which caps the per-board cost by construction.
+
+\section{Discussion}\label{sec:discussion}
+
+\subsection{Blockchain versus a Centralized Registry}
+A single-operator web registry would implement every function in this system for a fraction of the engineering cost, at zero gas, with faster queries. It would also have a failure mode this project exists to remove: every other tier must trust the operator, who can edit history, lock out a participant, or favor its own tier. The blockchain binding is not about technology preference but about \emph{mutual custody of the record}: no participant can amend a batch link, an attestation, or a custody event after the fact, and no participant needs to trust another's database. The measured price of that guarantee is Table~\ref{tab:gas}: roughly 6.1M gas (about 0.12 ETH at 20\,gwei) to onboard and certify a six-component board with full evidence, which is why the prototype runs on a local chain and any production deployment assumes L2 fees or batching rather than mainnet costs.
+
+\subsection{Privacy}
+Everything on-chain is public by design: addresses, batch ids, document hashes, CIDs, custody order. Document \emph{contents} stay off-chain, and a keccak256 commitment leaks nothing invertible---but the linkage structure itself is commercial information. A real deployment must decide whether a tier-2 vendor's customer list is acceptable on a public chain. The standard answers are organizational (a permissioned chain among consortium members), cryptographic (salted hashes to break linkability), or architectural (per-tier subchains with cross-chain board links). Our prototype chooses public visibility because the buyer-verifiability story depends on it, and we flag this as the first thing a production review would change.
+
+\subsection{Interoperability and Regulation}
+The three certificate types are an enum tied to EU/US regimes that change on their own schedules---RoHS exemption lists, REACH candidate-list updates, FCC part revisions. The contract stores \emph{that a document of a type exists and was attested}; it deliberately does not encode regulation text, so a regulatory change invalidates nothing on-chain---it changes what auditors will attest going forward and may trigger revocations. Two harder boundaries remain. First, the \emph{oracle problem}: the chain binds a document hash, not the truth of the document; binding ids to physical batches and documents to accredited issuers is institutional process outside any ledger~\cite{guin}. Second, immutability sits uneasily with rights-to-erasure regimes such as GDPR; addresses are pseudonymous but linkable, and revocation-by-flag (rather than deletion) is the compromise this design shares with most deployed provenance systems.
+
+\subsection{Limitations and Threats}
+The system proves document integrity and custody \emph{order}; it does not prove physical authenticity, laboratory correctness, or shipment contents~\cite{guin}. \texttt{ADMIN} is a trust root: whoever holds it can grant roles, and the prototype's role-admin policy is a deploy-time convention. IPFS pinning is a liveness promise, not a durability guarantee---unpinned documents degrade the system to hash-only verification. The contract is not upgradeable (deliberately; redeploys and reseeds are acceptable at course scale), and enumeration relies on event replay rather than an indexer. None of these are hidden: the demo script narrates them, and each maps to a future-work item.
+
+\subsection{Future Improvements}\label{sec:future}
+Four, in order of measured payoff: (1) \emph{batched evidence}---a root per certificate family per batch, cutting the dominant 69\% cost term while keeping per-batch gap enumeration on-chain; (2) an \emph{event indexer} replacing the client's full log replay, which removes the read-side scaling ceiling entirely; (3) \emph{document versioning} with supersede semantics, extending the current attest/revoke pair; and (4) \emph{account abstraction} so participants join with passkeys instead of raw keys, which would also let the admin role rotate without seed-phrase ceremonies.
+
+\section{Conclusion}
+A board's provenance is currently an act of trust distributed across companies with no shared record. We built the alternative at course scale: one role-gated contract where registration, evidence, attestation, assembly, and custody are public, append-only, and independently checkable, with documents anchored by content hashes and stored off-chain. The measurements justify the design's economics---certificates dominate cost, readable ids are free below 32 characters, exact-gap reporting costs almost nothing, and the role machinery from an audited library costs fractions of a percent---and the discussion bounds the claim honestly: this is a shared record of documents and custody, not a certificate of physical truth.
+
+\begin{thebibliography}{1}
+
+\bibitem{guin}
+U. Guin, D. DiMase, and M. Tehranipoor, ``Counterfeit integrated circuits: Detection, avoidance, and the challenges ahead,'' \emph{J. Electron. Test.}, vol. 30, no. 1, pp. 9--23, Feb. 2014.
+
+\bibitem{cui}
+P. Cui, J. Dixon, U. Guin, and D. Dimase, ``A blockchain-based framework for supply chain provenance,'' \emph{IEEE Access}, vol. 7, pp. 157113--157125, 2019.
+
+\bibitem{toyoda}
+K. Toyoda, P. T. Mathiopoulos, I. Sasase, and T. Ohtsuki, ``A novel blockchain-based product ownership management system (POMS) for anti-counterfeits in the post supply chain,'' \emph{IEEE Access}, vol. 5, pp. 17465--17477, 2017.
+
+\bibitem{oz}
+OpenZeppelin, ``AccessControl,'' \emph{OpenZeppelin Contracts documentation}. [Online]. Available: https://docs.openzeppelin.com/contracts/5.x/access-control
+
+\end{thebibliography}
+
+\end{document}

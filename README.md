@@ -14,26 +14,31 @@ The demo dataset is a workstation HBOM: 30 real PC parts (CPU, motherboard, memo
 | --- | --- |
 | Contract, interface, deploy + seed scripts | **Implemented** — 4 roles, 8 write functions, 8 read functions, custom errors, indexed events |
 | Test suite (`test/HBOMProvenance.test.ts`) | **Implemented** — 8 cases: happy path, unauthorized action, duplicate id, missing evidence, invalid transfer, two-step handover, double attestation + self-attestation, revocation |
-| Web client (`web/`) | **Implemented for the demo** — TanStack Start on Cloudflare Workers, five role screens, wallet connection, live chain reads |
-| IPFS upload | **In progress** — hashes are computed in the browser; CIDs are accepted but no Pinata upload yet |
-| Base Sepolia deployment | **Not started** — the graded demo runs against a local Hardhat node |
-| Gas analysis, privacy discussion, final report | **Not started** — final milestone, Dec 4 |
+| Web client (`web/`) | **Implemented** — TanStack Start on Cloudflare Workers, five role screens, wallet connection, live chain reads, same-origin RPC proxy |
+| IPFS upload | **Implemented** — files are hashed in the browser, then pinned through `/api/ipfs` (Pinata, `PINATA_JWT` secret); without the secret the CID field stays manual |
+| Gas analysis (`docs/gas-analysis.md`) | **Done** — every write/read path measured, plus three priced design alternatives (bytes32 ids, Merkle-root HBOM, flat roles) |
+| Base Sepolia deployment | **Ready to run** — throwaway-key flow in `.env`, `bun run seed:base` deploys + seeds, `bun run deploy:web:base` publishes the Worker pointing at the public chain |
+| Final report | `docs/final-report/` — IEEE-format source + rendered draft |
 
 ## Layout
 
 ```
 contracts/interfaces/IHBOMProvenance.sol   types, events, errors, signatures
 contracts/HBOMProvenance.sol               implementation
-scripts/deploy.ts                          deploys and grants demo roles
-scripts/seed.ts                            deploys + loads the demo dataset
+contracts/bench/GasBench.sol               measurement instruments for the design-alternative comparison
+scripts/deploy.ts                          deploys and grants demo roles (local)
+scripts/seed.ts                            deploys + loads the demo dataset (local)
+scripts/seed-base-sepolia.ts               deploys + seeds the shared Base Sepolia instance
+scripts/gas.ts                             gas measurement, prints the tables in docs/gas-analysis.md
 shared/demo-parts.json                     curated part catalogue (30 parts, one board)
 test/HBOMProvenance.test.ts                node:test suite over Hardhat 3 + viem
 shared/deployments/                        generated { chainId, address, abi } (gitignored)
 web/                                       TanStack Start app, deployable to Workers
-  src/routes/                              one file per screen
+  src/routes/                              one file per screen + /api/rpc + /api/ipfs
   src/lib/chain.ts                         viem client, snapshot loader, error decoding
-  src/routes/api/rpc.ts                    same-origin JSON-RPC proxy
-docs/demo-runbook.md                       demo script, timing, and scope boundaries
+docs/gas-analysis.md                       measured gas tables + design-alternative analysis
+docs/final-demo-runbook.md                 script for the final 7-10 minute demo video
+docs/final-report/                         IEEE-format technical report (LaTeX source)
 ```
 
 ## Roles
@@ -71,7 +76,32 @@ Switch roles with the wallet chip in the header → **Switch account**, or with 
 
 ### Why the web app proxies RPC
 
-Browsers now block a page on `localhost` from calling `127.0.0.1:8545` directly (Chrome Local Network Access). The client therefore talks to `/api/rpc` on its own origin, and the server forwards JSON-RPC to the node. The browser never needs the RPC URL, and a deployed Worker can point the proxy at a public endpoint instead.
+Browsers now block a page on `localhost` from calling `127.0.0.1:8545` directly (Chrome Local Network Access). The client therefore talks to `/api/rpc` on its own origin, and the server forwards JSON-RPC to the node. Deployed on Workers, the proxy reads the `RPC_URL` var (set with `wrangler deploy --var RPC_URL:…`), so a public endpoint or an RPC API key never reaches the browser.
+
+### Certificate upload to IPFS
+
+The browser computes `keccak256(file)` locally — that hash, not the upload, is what the contract stores and what the auditor re-verifies. The file itself is then pinned through `/api/ipfs`, which forwards to Pinata using the `PINATA_JWT` Worker secret (`bunx wrangler secret put PINATA_JWT`; in local dev, copy `web/.dev.vars.example` to `web/.dev.vars`). Without the secret the endpoint answers 503, the UI says so, and the CID can be typed by hand: the trust model degrades to hash-only, never to nothing.
+
+## Testnet deployment (Base Sepolia)
+
+The local Hardhat node is the graded demo path — deterministic, offline, free. The shared public deployment exists so anyone can click a live URL without running anything:
+
+```bash
+# 0. once: copy .env.example to .env and generate two throwaway keys
+#    (never reuse the local-dev Hardhat keys on a public network)
+# 1. fund the DEPLOYER address from any Base Sepolia faucet (~0.05 test ETH;
+#    it also pays for the auditor, the seed script forwards the gas money)
+# 2. deploy + seed the demo board (writes shared/deployments/84532.json)
+bun run seed:base
+# 3. build the client for chain 84532 and publish the Worker
+bun run deploy:web:base
+```
+
+On-chain separation of duties is preserved with two accounts: the deployer holds admin + supplier + assembler + custodian, a second throwaway key holds only `AUDITOR_ROLE` — so self-attestation still reverts on the public chain exactly as it does locally.
+
+## Gas analysis
+
+`docs/gas-analysis.md` prices every write and read path on the in-memory chain (reproduce with `bun run gas`), including the three design alternatives the report discusses: `bytes32` ids, a Merkle-root HBOM, and flat role checks. Headline numbers: certificates dominate the world cost (69% of ~28.9M gas for the seeded dataset), ids under 32 characters are effectively free as strings, the Merkle alternative saves ~87% on assembly and verification but loses exact-gap enumeration, and OpenZeppelin `AccessControl` costs +0.3% per gated call over a hand-rolled mapping.
 
 ## Demo flow
 
@@ -96,6 +126,6 @@ The suite runs on Hardhat's in-memory chain with `node:test` + viem assertions. 
 
 ## Deliberately out of scope
 
-Versioned certificates, multi-board pagination, IPFS upload, testnet deployment, gas-report automation, and access-control admin screens. See `docs/demo-runbook.md` for why each is deferred.
+Versioned certificates, multi-board pagination, upgradeability/pausability, access-control admin screens, and automated gas reporting (the plugin line is Hardhat 2 only; `scripts/gas.ts` captures receipts directly). Everything else the proposal promised — RBAC, evidence hashing, off-chain document storage, custody handover, a public testnet deployment, and the gas/privacy analysis — is in the repo.
 
 MIT licensed — see [LICENSE](LICENSE).
