@@ -11,8 +11,11 @@
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "seed:local": "hardhat run scripts/seed.ts --network localhost",
+    "seed:base": "hardhat compile && bun scripts/seed-base-sepolia.ts",
+    "deploy:web:base": "cd web && bun run deploy:base",
     "web": "cd web && bun run dev",
     "clean": "hardhat clean",
+    "gas": "hardhat run scripts/gas.ts",
     "keystores": "bun scripts/keystores.ts"
   },
   "devDependencies": {
