@@ -39,7 +39,7 @@ import {
   Stat,
 } from "@/components/bits";
 import { useApp } from "@/lib/app";
-import { CERT_TYPES, CUSTODY_STATE, type BoardRow, type CertificateRow } from "@/lib/chain";
+import { CERT_TYPES, CHAIN_ID, CUSTODY_STATE, type BoardRow, type CertificateRow } from "@/lib/chain";
 import { categoryOf, formatTimestamp } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -97,15 +97,28 @@ function VerifyPage() {
       {loadError ? (
         <Alert variant="destructive">
           <CircleAlert className="size-4" />
-          <AlertTitle>The local chain is not answering</AlertTitle>
+          <AlertTitle>
+            {CHAIN_ID === 31337
+              ? "The local chain is not answering"
+              : "The Base Sepolia endpoint is not answering"}
+          </AlertTitle>
           <AlertDescription className="space-y-2">
             <p className="font-mono text-xs">{loadError}</p>
             <p>
-              Start <code className="rounded bg-muted px-1">bunx hardhat node</code> and run{" "}
-              <code className="rounded bg-muted px-1">
-                bunx hardhat run scripts/seed.ts --network localhost
-              </code>
-              .
+              {CHAIN_ID === 31337 ? (
+                <>
+                  Start <code className="rounded bg-muted px-1">bunx hardhat node</code> and run{" "}
+                  <code className="rounded bg-muted px-1">
+                    bunx hardhat run scripts/seed.ts --network localhost
+                  </code>
+                  .
+                </>
+              ) : (
+                <>
+                  The shared public RPC may be rate-limiting or briefly unavailable — wait a
+                  moment and try again.
+                </>
+              )}
             </p>
             <Button size="sm" variant="outline" onClick={refresh}>
               Try again

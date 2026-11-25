@@ -7,7 +7,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "vite build && wrangler deploy",
-    "deploy:base": "VITE_DEPLOYMENT_CHAIN=84532 vite build && wrangler deploy --var RPC_URL:https://sepolia.base.org",
+    "deploy:base": "VITE_DEPLOYMENT_CHAIN=84532 vite build && wrangler deploy --var RPC_URL:https://base-sepolia-rpc.publicnode.com",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
