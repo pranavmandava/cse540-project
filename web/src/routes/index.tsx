@@ -115,8 +115,9 @@ function VerifyPage() {
                 </>
               ) : (
                 <>
-                  The shared public RPC may be rate-limiting or briefly unavailable — wait a
-                  moment and try again.
+                  The public RPC rejected or dropped the request — a rate
+                  limit or a momentary outage can cause this. Wait a moment and
+                  try again.
                 </>
               )}
             </p>

@@ -133,16 +133,40 @@ function unique(values: string[]): string[] {
 }
 
 /**
+ * Replay the contract's logs from the deployment floor, in windows the
+ * public RPCs accept. Hosted providers cap eth_getLogs block ranges
+ * (publicnode: 50,000; a fromBlock:0 query on a ~63M-block chain is simply
+ * refused) and prune old state, so the replay must start at the deployment
+ * block — recorded by the seed script — and step forward. The local node
+ * has no cap and a short chain, so one window from genesis covers it.
+ */
+const LOG_WINDOW = 50_000n;
+
+async function loadContractEvents() {
+  const floor = BigInt(deployment.deployBlock ?? 0);
+  const latest = await publicClient.getBlockNumber();
+  const collected: unknown[] = [];
+
+  for (let start = floor; start <= latest; start += LOG_WINDOW) {
+    const end = start + LOG_WINDOW - 1n > latest ? latest : start + LOG_WINDOW - 1n;
+    const chunk = (await publicClient.getContractEvents({
+      address: CONTRACT_ADDRESS,
+      abi: ABI,
+      fromBlock: start,
+      toBlock: end,
+    })) as unknown[];
+    collected.push(...chunk);
+  }
+  return collected;
+}
+
+/**
  * Rebuild the whole registry from logs, then hydrate each record from storage.
  * At demo scale (3 batches, 1 board) this is a handful of RPC calls and removes
  * any need for an indexer or a hard-coded list of ids.
  */
 export async function loadSnapshot(): Promise<Snapshot> {
-  const events = (await publicClient.getContractEvents({
-    address: CONTRACT_ADDRESS,
-    abi: ABI,
-    fromBlock: 0n,
-  })) as unknown as Array<{
+  const events = (await loadContractEvents()) as unknown as Array<{
     eventName: string;
     args: Record<string, unknown>;
     blockNumber: bigint;

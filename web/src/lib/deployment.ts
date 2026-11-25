@@ -5,6 +5,8 @@ export interface Deployment {
   chainId: number;
   address: `0x${string}`;
   deployedAt: string;
+  /** First block the contract exists at; anchors the hosted event replay. */
+  deployBlock?: number;
   deployer: `0x${string}`;
   boardId?: string;
   roles: {

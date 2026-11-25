@@ -111,6 +111,7 @@ console.log(`Auditor:        ${auditorAccount.address} (${auditorBalance / 10n *
 // -------------------------------------------------------------------- deploy
 
 console.log("\nDeploying HBOMProvenance...");
+let deployReceipt: Awaited<ReturnType<typeof publicClient.waitForTransactionReceipt>>;
 {
   const hash = await deployer.deployContract({
     abi: artifact.abi,
@@ -119,9 +120,9 @@ console.log("\nDeploying HBOMProvenance...");
     account: deployerAccount,
     chain: baseSepolia,
   });
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  if (!receipt.contractAddress) throw new Error("Deployment produced no address.");
-  contractAddress = receipt.contractAddress;
+  deployReceipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (!deployReceipt.contractAddress) throw new Error("Deployment produced no address.");
+  contractAddress = deployReceipt.contractAddress;
 }
 console.log(`  address ${contractAddress}`);
 
@@ -201,6 +202,7 @@ const deployment = {
   chainId: 84532,
   address: contractAddress,
   deployedAt: new Date().toISOString(),
+  deployBlock: Number(deployReceipt.blockNumber),
   deployer: deployerAccount.address,
   roles: {
     admin: deployerAccount.address,
