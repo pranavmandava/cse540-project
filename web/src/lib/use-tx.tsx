@@ -26,8 +26,11 @@ async function sendViaWallet(functionName: string, args: readonly unknown[]) {
     chain: CHAIN,
   });
 
-  await publicClient.waitForTransactionReceipt({ hash });
-  return hash;
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    throw new Error(`Transaction ${shortHash(receipt.transactionHash)} reverted on-chain.`);
+  }
+  return receipt.transactionHash;
 }
 
 export function useTx() {
@@ -47,7 +50,7 @@ export function useTx() {
       } catch (cause) {
         const message = describeError(cause);
         setError(message);
-        toast.error(label, { description: message });
+        toast.error("Transaction failed", { description: message });
         return false;
       } finally {
         setPending(null);

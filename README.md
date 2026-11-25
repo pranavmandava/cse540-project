@@ -102,7 +102,7 @@ bun run seed:base
 bun run deploy:web:base
 ```
 
-On-chain separation of duties is preserved with two accounts: the deployer holds admin + supplier + assembler + custodian, a second throwaway key holds only `AUDITOR_ROLE` — so self-attestation still reverts on the public chain exactly as it does locally.
+The deployer holds admin, supplier, assembler, and custodian roles. The second account holds `AUDITOR_ROLE` and `CUSTODIAN_ROLE` so it can attest the deployer's evidence and receive the board. It does not hold `SUPPLIER_ROLE`, and the contract still rejects self-attestation.
 
 ## Gas analysis
 

@@ -9,10 +9,10 @@
  *
  * Cast (two throwaway keys, .env / .env.example — never the local-dev keys):
  *   - deployer: admin + supplier + assembler + custodian (funds the auditor)
- *   - auditor: holds only AUDITOR_ROLE, so separation of duties still holds
- *     on-chain and the self-attestation rule stays demonstrable
+ *   - auditor: auditor + custodian, so they can attest evidence and receive
+ *     the board without holding the supplier role
  *
- * Writes shared/deployments/84532.json; then `bun run deploy:base:web`
+ * Writes shared/deployments/84532.json; then `bun run deploy:web:base`
  * builds the client for this deployment and publishes it to Workers.
  */
 import { createPublicClient, createWalletClient, http, parseEther } from "viem";
@@ -75,7 +75,11 @@ async function send(
     account: client.account,
     chain: baseSepolia,
   });
-  return publicClient.waitForTransactionReceipt({ hash });
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") {
+    throw new Error(`${functionName} reverted on-chain (${receipt.transactionHash})`);
+  }
+  return receipt;
 }
 
 let contractAddress: `0x${string}` | null = null;
@@ -137,6 +141,7 @@ await grantRole("SUPPLIER_ROLE", deployerAccount.address);
 await grantRole("ASSEMBLER_ROLE", deployerAccount.address);
 await grantRole("AUDITOR_ROLE", auditorAccount.address);
 await grantRole("CUSTODIAN_ROLE", deployerAccount.address);
+await grantRole("CUSTODIAN_ROLE", auditorAccount.address);
 
 // ------------------------------------------------------------------- dataset
 
@@ -209,7 +214,7 @@ const deployment = {
     supplier: deployerAccount.address,
     assembler: deployerAccount.address,
     auditor: auditorAccount.address,
-    custodian: deployerAccount.address,
+    custodian: auditorAccount.address,
   },
   demo: {
     boardId: demo.board.boardId,
