@@ -82,21 +82,22 @@ let contractAddress: `0x${string}` | null = null;
 
 // ------------------------------------------------------------------- funding
 
-const MIN_ETH = parseEther("0.02");
+const MIN_ETH = parseEther("0.0005");
 const deployerBalance = await publicClient.getBalance({ address: deployerAccount.address });
 if (deployerBalance < MIN_ETH) {
   throw new Error(
     `Deployer ${deployerAccount.address} holds ${deployerBalance} wei. ` +
-      "Fund it from a Base Sepolia faucet (it also pays for the auditor's gas).",
+      "Fund it from a faucet (the Coinbase CDP faucet drips 0.0001 ETH per claim; " +
+      "~15 claims is plenty — the script also pays for the auditor).",
   );
 }
 
 const auditorBalance = await publicClient.getBalance({ address: auditorAccount.address });
 if (auditorBalance < MIN_ETH) {
-  console.log(`Funding auditor ${auditorAccount.address} with 0.05 test ETH from the deployer...`);
+  console.log(`Funding auditor ${auditorAccount.address} with 0.0005 test ETH from the deployer...`);
   const hash = await deployer.sendTransaction({
     to: auditorAccount.address,
-    value: parseEther("0.05"),
+    value: parseEther("0.0005"),
     account: deployerAccount,
     chain: baseSepolia,
   });

@@ -17,8 +17,8 @@ the measurement and update both.
 - [ ] Read Section VI (Discussion) carefully: it states the system's
       boundaries (physical authenticity, admin trust root, pinning liveness,
       privacy). Everyone should be comfortable defending these live in Q&A.
-- [ ] Verify the abstract's claims still match the shipped contract.
-- [ ] If the Base Sepolia deployment is done, add the Worker URL and the
+- [x] Verify the abstract's claims still match the shipped contract.
+- [x] If the Base Sepolia deployment is done, add the Worker URL and the
       contract address to the architecture paragraph in Section II-D
       (marked by the "optional shared deployment" sentence).
 - [ ] Adjust author block emails/names if needed.

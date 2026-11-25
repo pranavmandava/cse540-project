@@ -17,7 +17,7 @@ The demo dataset is a workstation HBOM: 30 real PC parts (CPU, motherboard, memo
 | Web client (`web/`) | **Implemented** — TanStack Start on Cloudflare Workers, five role screens, wallet connection, live chain reads, same-origin RPC proxy |
 | IPFS upload | **Implemented** — files are hashed in the browser, then pinned through `/api/ipfs` (Pinata, `PINATA_JWT` secret); without the secret the CID field stays manual |
 | Gas analysis (`docs/gas-analysis.md`) | **Done** — every write/read path measured, plus three priced design alternatives (bytes32 ids, Merkle-root HBOM, flat roles) |
-| Base Sepolia deployment | **Ready to run** — throwaway-key flow in `.env`, `bun run seed:base` deploys + seeds, `bun run deploy:web:base` publishes the Worker pointing at the public chain |
+| Base Sepolia deployment | **Live** — contract [`0x803e3778…b6063422c`](https://sepolia.basescan.org/address/0x803e3778dd01ae83e9a25cb11942ef7b6063422c), app at https://hbom-provenance.pranav-techiegeek.workers.dev |
 | Final report | `docs/final-report/` — IEEE-format source + rendered draft |
 
 ## Layout
@@ -86,11 +86,16 @@ The browser computes `keccak256(file)` locally — that hash, not the upload, is
 
 The local Hardhat node is the graded demo path — deterministic, offline, free. The shared public deployment exists so anyone can click a live URL without running anything:
 
+**Live instance:** https://hbom-provenance.pranav-techiegeek.workers.dev reading contract [`0x803e3778dd01ae83e9a25cb11942ef7b6063422c`](https://sepolia.basescan.org/address/0x803e3778dd01ae83e9a25cb11942ef7b6063422c) on Base Sepolia (chain 84532), seeded with the demo board and its one deliberate REACH gap. Reads need no wallet; writes need the two throwaway keys from `.env` imported into MetaMask.
+
+Reproducing it from scratch:
+
 ```bash
 # 0. once: copy .env.example to .env and generate two throwaway keys
 #    (never reuse the local-dev Hardhat keys on a public network)
-# 1. fund the DEPLOYER address from any Base Sepolia faucet (~0.05 test ETH;
-#    it also pays for the auditor, the seed script forwards the gas money)
+# 1. fund the DEPLOYER address from the Coinbase Developer Platform faucet
+#    (https://portal.cdp.coinbase.com — Onchain Tools -> Faucet; no mainnet
+#    balance required, drips 0.0001 ETH per claim, ~20 claims is plenty)
 # 2. deploy + seed the demo board (writes shared/deployments/84532.json)
 bun run seed:base
 # 3. build the client for chain 84532 and publish the Worker
