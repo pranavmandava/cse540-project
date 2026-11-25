@@ -23,6 +23,35 @@ cd web && bun run dev           # terminal 3, http://localhost:5173
   `contracts/HBOMProvenance.sol`, 16px+ font.
 - Have `docs/gas-analysis.md` open in a browser tab.
 
+## The hosted cast (Base Sepolia, for the live URL)
+
+The local demo has five funded accounts; the hosted deployment at
+https://hbom-provenance.pranav-techiegeek.workers.dev is a two-actor play.
+Import both throwaway keys from `.env` into MetaMask once (Add account →
+Import private key — `DEPLOYER_PRIVATE_KEY`, then `AUDITOR_PRIVATE_KEY`):
+
+| MetaMask account | On-chain roles | Plays |
+| --- | --- | --- |
+| Deployer (`0xdbCE…091A`) | ADMIN, SUPPLIER, ASSEMBLER, CUSTODIAN | supplier + assembler steps |
+| Auditor (`0x7993…95ad`) | AUDITOR, CUSTODIAN | auditor + distributor steps |
+
+Click **Connect wallet** on the site once — MetaMask switches to Base
+Sepolia on its own prompt, and the header chip turns green ("Base Sepolia
+84532"). The auditor account is deliberately a separate key: the
+self-attestation revert and the two-pairs-of-eyes rule still hold on the
+public chain.
+
+Role switching works exactly like the local demo: header wallet chip →
+**Switch account**, or MetaMask's own account menu; the app re-reads
+`hasRole` and every screen follows. Expect one MetaMask confirmation per
+write and ~2–4 s per receipt on the public chain — slower than the local
+node, so do the six-step lifecycle locally and use the hosted URL as the
+"anyone can verify this" beat (it needs no wallet at all).
+
+Custody on the hosted site: the assembler (deployer account) initiates to
+the auditor/distributor account, which accepts in a second transaction —
+the auditor key was granted CUSTODIAN_ROLE so the handover can complete.
+
 ## Timing (target 8:30, acceptable 7:00–10:00)
 
 | Time | Segment | On screen |

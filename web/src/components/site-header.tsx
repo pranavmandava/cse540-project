@@ -80,7 +80,7 @@ function NetworkChip() {
           isWrongNetwork ? "bg-destructive" : "bg-emerald-500",
         )}
       />
-      {isWrongNetwork ? "Wrong network" : "Local"}{" "}
+      {isWrongNetwork ? "Wrong network" : CHAIN_ID === 31337 ? "Local" : "Base Sepolia"}{" "}
       <span className="font-mono text-[10px] text-muted-foreground">{CHAIN_ID}</span>
     </Badge>
   );
